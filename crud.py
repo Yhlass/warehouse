@@ -73,7 +73,6 @@ def update_user(id: int, req: userSchema, db: Session = Depends(get_db)):
     else:
         return False
     
-
 def update_requests(id: int, req: requestsSchema, db: Session = Depends(get_db)):
     new_update = db.query(Requests).filter(Requests.id == id)\
         .update({
@@ -99,6 +98,44 @@ def update_responses(id: int, req: responsesSchema, db: Session = Depends(get_db
     else:
         return False
     
+def create_responses(req, header_param, db: Session):
+    token = check_token(header_param)
+    payload = decode_token(token)
+    user_name: str = payload.get('user_name')
+    password: str = payload.get('password')
+    user = read_user_id(user_name, password, db)
+    if not user:
+        return False
+    new_add = Responses(
+        user_id = user.id,
+        requests_id = req.requests_id,
+        status = req.status,
+        description = req.description
+    )
+    db.add(new_add)
+    db.commit()
+    db.refresh(new_add)
+    return new_add
+
+def read_responses(header_param, requests_id, db: Session):
+    token = check_token(header_param)
+    payload = decode_token(token)
+    user_name: str = payload.get('user_name')
+    password: str = payload.get('password')
+    user = read_user_id(user_name, password, db)
+    if not user:
+        return False
+    result = db.query(
+        Responses
+    )\
+    .options(joinedload(Responses.user).load_only('user_name'))\
+    .join(Requests,Requests.id == Responses.requests_id)
+    if requests_id:
+            result = result.filter(Responses.requests_id == requests_id)
+        
+    return result.all()
+
+
 
 
 def read_department(db: Session):
@@ -169,15 +206,7 @@ def read_user(department_id, position_id, db:Session):
     result = result.all()
     return result 
 
-def read_responses(requests_id, db:Session):
-    result = db.query(
-        Responses)\
-#    .join(Requests,requests_id == Responses.requests_id)\
-    
-    if requests_id:
-        result = result.filter(Responses.requests_id == requests_id)
-    result = result.all()
-    return result 
+
 
 def create_img(id, file, db:Session):
     uploaded_file_name=upload_image('item', file)

@@ -25,7 +25,7 @@ def add_requests(req:requestsSchema, header_param: Request, db: Session = Depend
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Something went wrong')
     
 @requests_router.get('/requests', dependencies=[Depends(HTTPBearer())])
-def add_favourite(header_param: Request, req_status: Optional[bool] = None, db: Session = Depends(get_db)):
+def add_requests(header_param: Request, req_status: Optional[bool] = None, db: Session = Depends(get_db)):
     try:
         result = crud.read_requests(header_param, req_status, db)
         if result:
