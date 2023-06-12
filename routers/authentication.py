@@ -25,7 +25,7 @@ def sign_in(req: loginSchema,db: Session= Depends(get_db)):
         print(e)
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Something went wrong')
 
-@authentication_router.get('/user', dependencies=[Depends(HTTPBearer())])
+@authentication_router.get('/user')
 def get_user(department_id, position_id, db: Session = Depends(get_db)):
     try:
         result = crud.read_user(department_id, position_id, db)
@@ -48,3 +48,14 @@ def new_user(req: userSchema, db: Session = Depends(get_db)):
     except Exception as e:
         print(e)
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"result": 'Something went wrong'})
+    
+@authentication_router.put('/delete-user/{id}')
+def delete_user(id:int, db: Session = Depends(get_db)):
+    try:
+        result = crud.delete_user(id, db)
+        result = jsonable_encoder(result)
+        return JSONResponse(status_code = status.HTTP_200_OK, content=result)
+    except Exception as e:
+        print(e)
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = 'Something went wrong')
+     

@@ -29,7 +29,7 @@ class positionSchema(BaseModel):
 class responsesSchema(BaseModel):
     status          : bool
     description     : str
-    requests_id      : int
+    requests_id     : int
 
 class requestsSchema(BaseModel):
     item_id         : int         
@@ -41,6 +41,6 @@ class loginSchema(BaseModel):
     password        : str
     
 class registerSchema(loginSchema):
-    user_name: str
+    user_name       : str
     retype_password : str
     

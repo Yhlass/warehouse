@@ -40,12 +40,15 @@ def add_requests(header_param: Request, req_status: Optional[bool] = None, db: S
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Something went wrong')    
 
 
-@requests_router.put('/update-requests/{id}')
-def update_requests(id: int,  req: requestsSchema, db: Session = Depends(get_db)):
+@requests_router.put('/update-requests/{id}', dependencies=[Depends(HTTPBearer())])
+def update_requests(id: int, req: requestsSchema, header_param: Request, db: Session = Depends(get_db)):
     try:
-        result = crud.update_requests(id, req, db)
-        result = jsonable_encoder(result)
-        return JSONResponse(status_code=status.HTTP_200_OK, content=result)
+        result = crud.update_requests(id, req, header_param, db)
+        if result:
+            result = jsonable_encoder(result)
+            return JSONResponse(status_code=status.HTTP_201_CREATED, content=result)
+        elif result == False:
+            return JSONResponse(status_code=status.HTTP_203_NON_AUTHORITATIVE_INFORMATION, content={'result':'This user not found'})
     except Exception as e:
         print(e)
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Something went wrong')

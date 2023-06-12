@@ -27,7 +27,7 @@ def get_user(
     position_id: Optional[int] = None,
     db: Session = Depends(get_db)):
     try:
-        result = crud.read_user(department_id, position_id, db)
+        result = crud.read_users(department_id, position_id, db)
         result = jsonable_encoder(result)
         return JSONResponse(status_code=status.HTTP_200_OK, content=result)
     except Exception as e:
@@ -43,3 +43,4 @@ def update_user(id: int, req: userSchema, db: Session = Depends(get_db)):
     except Exception as e:
         print(e)
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Something went wrong')
+    

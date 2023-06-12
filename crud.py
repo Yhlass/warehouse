@@ -37,7 +37,10 @@ def update_item(id: int, req: itemSchema, db: Session = Depends(get_db)):
     else:
         return False
     
-
+def read_department(db: Session):
+    result = db.query(Department).all()
+    return result
+    
 def update_department(id: int, req: departmentSchema, db: Session = Depends(get_db)):
     new_update = db.query(Department).filter(Department.id == id)\
         .update({
@@ -49,6 +52,15 @@ def update_department(id: int, req: departmentSchema, db: Session = Depends(get_
     else:
         return False
     
+def read_position(department_id, db:Session):
+    result = db.query(
+        Position)\
+    
+    if department_id:
+        result = result.filter(Position.department_id == department_id)
+    result = result.all()
+    return result 
+
 def update_position(id: int, req: positionSchema, db: Session = Depends(get_db)):
     new_update = db.query(Position).filter(Position.id == id)\
         .update({
@@ -60,37 +72,23 @@ def update_position(id: int, req: positionSchema, db: Session = Depends(get_db))
     else:
         return False
     
+def read_users(department_id, position_id, db):
+    result = db.query(
+        User)\
+        
+    if department_id:
+        result = result.filter(User.department_id == department_id)
+    if position_id:
+        result = result.filter(User.position_id == position_id)
+    result = result.all()
+    return result
+    
 def update_user(id: int, req: userSchema, db: Session = Depends(get_db)):
     new_update = db.query(User).filter(User.id == id)\
         .update({
             User.name       : req.name,
             User.staff_id   : req.staff_id,
             User.type       : req.type
-        }, synchronize_session=False)
-    db.commit()
-    if new_update:
-        return "Successfully update"
-    else:
-        return False
-    
-def update_requests(id: int, req: requestsSchema, db: Session = Depends(get_db)):
-    new_update = db.query(Requests).filter(Requests.id == id)\
-        .update({
-            Requests.req_quantity   : req.req_quantity,
-            Requests.req_date       : req.req_date,
-            Requests.status         : req.status
-        }, synchronize_session=False)
-    db.commit()
-    if new_update:
-        return "Successfully update"
-    else:
-        return False
-    
-def update_responses(id: int, req: responsesSchema, db: Session = Depends(get_db)):
-    new_update = db.query(Responses).filter(Responses.id == id)\
-        .update({
-            Responses.status       : req.status,
-            Responses.description  : req.description
         }, synchronize_session=False)
     db.commit()
     if new_update:
@@ -132,24 +130,27 @@ def read_responses(header_param, requests_id, db: Session):
     .join(Requests,Requests.id == Responses.requests_id)
     if requests_id:
             result = result.filter(Responses.requests_id == requests_id)
-        
     return result.all()
 
-
-
-
-def read_department(db: Session):
-    result = db.query(Department).all()
-    return result
-
-def read_position(department_id, db:Session):
-    result = db.query(
-        Position)\
-    
-    if department_id:
-        result = result.filter(Position.department_id == department_id)
-    result = result.all()
-    return result 
+def update_responses(id, req, header_param, db:Session):
+    token = check_token(header_param)
+    payload = decode_token(token)
+    user_name: str = payload.get('user_name')
+    password: str = payload.get('password')
+    user = read_user_id(user_name, password, db)
+    if not user:
+        return False
+    new_update = db.query(Responses).filter(Responses.id == id)\
+        .update({
+            Responses.status            : req.status,
+            Responses.description       : req.description
+        }, synchronize_session=False)\
+        
+    db.commit()
+    if new_update:
+        return "Successfully update"
+    else:
+        return False
 
 def create_requests(req, header_param, db: Session):
     token = check_token(header_param)
@@ -192,22 +193,41 @@ def read_requests(header_param, req_status, db: Session):
     elif req_status == False:
         result = result.filter(Requests.status == False)
     return result.all()
+
+def update_requests(id, req, header_param, db: Session):
+    token = check_token(header_param)
+    payload = decode_token(token)
+    user_name: str = payload.get('user_name')
+    password: str = payload.get('password')
+    user = read_user_id(user_name, password, db)
+    if not user:
+        return False
+    new_update = db.query(Requests).filter(Requests.id == id)\
+        .update({
+            Requests.req_quantity   : req.req_quantity,
+            Requests.req_date       : req.req_date
+        }, synchronize_session=False)\
+        
+    db.commit()
+    if new_update:
+        return "Successfully update"
+    else:
+        return False
     
+def create_response(req, db: Session):
+    db.query(Requests).filter(Requests.id == req.requests_id)\
+        .update(
+            {
+                Requests.status: True
+            }, 
+            synchronize_session=False
+        )
+    db.commit()
+    new_add = Responses(**req.dict())
+    db.add(new_add)
+    db.commit()
+
     
-
-def read_user(department_id, position_id, db:Session):
-    result = db.query(
-        User)\
-    
-    if department_id:
-        result = result.filter(User.department_id == department_id)
-    if position_id:
-        result = result.filter(User.position_id == position_id)
-    result = result.all()
-    return result 
-
-
-
 def create_img(id, file, db:Session):
     uploaded_file_name=upload_image('item', file)
     new_add = Picture(
@@ -263,23 +283,24 @@ def signIn(req, db: Session):
         return user
 
     
-# def read_user(header_param, db: Session):
-#     token = check_token(header_param)
-#     payload = decode_token(token)
-#     user_name: str = payload.get('user_name')
-#     password: str = payload.get('password')
-#     user = db.query(User)\
-#         .filter(
-#             and_(
-#                 User.user_name == user_name,  
-#                 User.password == password
-#             )
-#         )\
-#             .all()
-#     if user:
-#         return db.query(User).all()
-#     else:
-#         return False
+def read_user(department_id, position_id, db):
+    result = db.query(
+        User)\
+        
+    if department_id:
+        result = result.filter(User.department_id == department_id)
+    if position_id:
+        result = result.filter(User.position_id == position_id)
+    result = result.all()
+    return result
+
+def delete_user(id, db: Session):
+    new_delete = (db.query(User).filter(User.id == id).delete(synchronize_session=False))
+    db.commit()
+    if new_delete:
+        return 'SUCCESFULLY DELETED'
+    else:
+        return "NO DELETED" 
 
 def read_user_id(user_name, password, db: Session):
     user = db.query(User.id, User.department_id, User.position_id)\
@@ -287,19 +308,3 @@ def read_user_id(user_name, password, db: Session):
             .first()
     if user:
         return user
-    
-def create_response(req, db: Session):
-    db.query(Requests).filter(Requests.id == req.requests_id)\
-        .update(
-            {
-                Requests.status: True
-            }, 
-            synchronize_session=False
-        )
-    db.commit()
-    new_add = Responses(**req.dict())
-    db.add(new_add)
-    db.commit()
-    db.refresh(new_add)
-    return new_add
-    

@@ -39,6 +39,7 @@ class User(Base):
     token           = Column(String)
     staff_id        = Column(String)
     type            = Column(String)
+    is_deleted      = Column(Boolean, default=False)
     department_id   = Column(Integer, ForeignKey('department.id'))
     position_id     = Column(Integer, ForeignKey('position.id'))
     create_at       = Column(DateTime, default=datetime.now)
