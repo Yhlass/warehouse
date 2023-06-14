@@ -17,6 +17,7 @@ def add_requests(req:requestsSchema, header_param: Request, db: Session = Depend
     try:
         result = crud.create_requests(req, header_param, db)
         if result:
+            result = jsonable_encoder(result)
             return JSONResponse(status_code=status.HTTP_201_CREATED, content={'result': 'Successfully added to requests'})
         else:
             return JSONResponse(status_code=status.HTTP_203_NON_AUTHORITATIVE_INFORMATION, content={'result': 'This user not found'})

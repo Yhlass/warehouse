@@ -249,7 +249,14 @@ def delete_img(id, db:Session):
     return True
 
 
-def create_new_user(req, db: Session):
+def create_new_user(req, header_param, db: Session):
+    token = check_token(header_param)
+    payload = decode_token(token)
+    user_name: str = payload.get('user_name')
+    password: str = payload.get('password')
+    user = read_user_id(user_name, password, db)
+    if not user:
+        return False
     user = db.query(User).filter(User.user_name == req.user_name).first()
     if user:
         return False
@@ -272,7 +279,14 @@ def create_new_user(req, db: Session):
     db.refresh(new_add)
     return new_add
 
-def signIn(req, db: Session):
+def signIn(req, header_param, db):
+    token = check_token(header_param)
+    payload = decode_token(token)
+    user_name: str = payload.get('user_name')
+    password: str = payload.get('password')
+    user = read_user_id(user_name, password, db)
+    if not user:
+        return False
     user = db.query(User.token).filter(
         and_(
             User.user_name == req.user_name,
@@ -281,9 +295,17 @@ def signIn(req, db: Session):
     ).first()
     if user:
         return user
+    db.commit()
 
     
-def read_user(department_id, position_id, db):
+def read_user(department_id, position_id, header_param, db):
+    token = check_token(header_param)
+    payload = decode_token(token)
+    user_name: str = payload.get('user_name')
+    password: str = payload.get('password')
+    user = read_user_id(user_name, password, db)
+    if not user:
+        return False
     result = db.query(
         User)\
         
@@ -293,8 +315,16 @@ def read_user(department_id, position_id, db):
         result = result.filter(User.position_id == position_id)
     result = result.all()
     return result
+    
 
-def delete_user(id, db: Session):
+def delete_user(id, header_param, db: Session):
+    token = check_token(header_param)
+    payload = decode_token(token)
+    user_name: str = payload.get('user_name')
+    password: str = payload.get('password')
+    user = read_user_id(user_name, password, db)
+    if not user:
+        return False
     new_delete = (db.query(User).filter(User.id == id).delete(synchronize_session=False))
     db.commit()
     if new_delete:
